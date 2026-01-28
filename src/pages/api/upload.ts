@@ -1,10 +1,7 @@
 import type { APIRoute } from 'astro'
-import { exec } from 'node:child_process'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { promisify } from 'node:util'
-
-const execPromise = promisify(exec)
+import { videoQueue } from '../../lib/queue'
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -35,28 +32,40 @@ export const POST: APIRoute = async ({ request }) => {
     const originalPath = path.join(originalDir, originalFileName)
     await fs.writeFile(originalPath, buffer)
 
-    // FFmpegコンテナで変換実行
-    // docker-compose.yml で定義した container_name: ffmpeg-worker を指定
-    const ffmpegCommand = `docker exec ffmpeg-worker ffmpeg -i /data/original/${originalFileName} -codec: copy -start_number 0 -hls_time 10 -hls_list_size 0 -f hls /data/hls/${hlsDirName}/index.m3u8`
-
-    // 非同期で変換を開始（レスポンスを待たせない場合は await しないが、今回は「すぐ変換」とのことなので待つか、バックグラウンドにするか）
-    // ユーザーは「すぐ変換する」と言っているので、ここでは実行を開始する
+    // Redisキューにジョブを追加（docker execの代わり）
     try {
-      await execPromise(ffmpegCommand)
+      const job = await videoQueue.add(
+        'convert-to-hls',
+        {
+          videoId,
+          originalFileName,
+          hlsDirName,
+          originalPath,
+          hlsOutputDir
+        },
+        {
+          jobId: videoId // ジョブIDを指定して後で状態確認できるように
+        }
+      )
+
+      return new Response(
+        JSON.stringify({
+          message: 'Upload successful, conversion started',
+          videoId,
+          jobId: job.id
+        }),
+        { status: 200 }
+      )
     } catch (error) {
-      console.error('FFmpeg error:', error)
-      // コンテナ名が異なる可能性や、環境が整っていない場合のエラー
-      return new Response(JSON.stringify({ 
-        message: 'File uploaded, but conversion failed. Make sure Docker environment is running.',
-        videoId 
-      }), { status: 500 })
+      console.error('Queue error:', error)
+      return new Response(
+        JSON.stringify({
+          message: 'File uploaded, but failed to queue conversion job.',
+          videoId
+        }),
+        { status: 500 }
+      )
     }
-
-    return new Response(JSON.stringify({ 
-      message: 'Upload and conversion successful',
-      videoId 
-    }), { status: 200 })
-
   } catch (error) {
     console.error('Upload error:', error)
     return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500 })

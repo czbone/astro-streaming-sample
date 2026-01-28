@@ -261,7 +261,7 @@ import Layout from '../layouts/Layout.astro'
     submitBtn.classList.add('opacity-50', 'cursor-not-allowed')
 
     statusContainer.classList.remove('hidden')
-    statusText.textContent = 'ファイルを変換しています... サーバーで処理中です。'
+    statusText.textContent = 'アップロード中です...'
 
     alertBox.classList.add('hidden')
 
@@ -274,10 +274,11 @@ import Layout from '../layouts/Layout.astro'
       const result = await response.json()
 
       if (response.ok) {
-        statusText.textContent = '変換が完了しました！'
+        statusText.textContent = '変換が開始されました！'
         alertBox.className =
           'rounded-xl p-4 mt-6 text-sm bg-green-50 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-100 dark:border-green-800'
-        alertBox.textContent = '成功！まもなくライブラリへ移動します...'
+        alertBox.textContent =
+          '成功！変換はバックグラウンドで実行されます。まもなくライブラリへ移動します...'
         alertBox.classList.remove('hidden')
 
         setTimeout(() => (window.location.href = '/'), 2000)
