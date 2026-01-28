@@ -5,10 +5,9 @@ import HlsPlayer from '../../components/HlsPlayer'
 const { id } = Astro.params
 
 // Nginxコンテナ経由で配信されるHLSファイルのURL
-// クライアント側（ブラウザ）から見たURLになるため、動的にホスト名を取得
-// サーバーサイドレンダリング時は Astro.url.hostname を使用
-const hostname = Astro.url.hostname || 'localhost'
-const hlsUrl = `http://${hostname}:8080/hls/${id}/index.m3u8`
+// Mixed Contentエラー（HTTPSからHTTPへのリクエスト）を避け、かつポート番号を排除するため、
+// クライアント側で現在のプロトコルとホスト名を自動的に使用するように構成します。
+const hlsUrl = `/hls/${id}/index.m3u8`
 ---
 
 <Layout title={`${id} を視聴中 - NexStream`}>
