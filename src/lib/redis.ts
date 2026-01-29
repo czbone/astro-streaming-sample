@@ -4,6 +4,8 @@ import Redis from 'ioredis'
 // VIDEO_QUEUE_REDIS_URLがある場合はそれを使用、なければhost/port個別指定
 const redisUrl = process.env.VIDEO_QUEUE_REDIS_URL
 
+console.log('##################')
+console.log(redisUrl)
 export const redis = redisUrl
   ? new Redis(redisUrl, {
       maxRetriesPerRequest: null,
