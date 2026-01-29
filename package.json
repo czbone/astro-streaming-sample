@@ -7,8 +7,6 @@
     "build": "astro build",
     "preview": "astro preview",
     "start": "node ./dist/server/entry.mjs",
-    "worker": "tsx src/workers/video-worker.ts",
-    "dev:all": "concurrently \"pnpm dev\" \"pnpm worker\"",
     "format": "prettier -w .",
     "lint": "eslint ."
   },
@@ -16,7 +14,9 @@
     "@astrojs/node": "^9.5.2",
     "@astrojs/react": "^4.4.2",
     "astro": "^5.16.15",
+    "bullmq": "^5.36.3",
     "hls.js": "^1.6.15",
+    "ioredis": "^5.5.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },
