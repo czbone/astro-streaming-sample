@@ -65,6 +65,28 @@ pnpm install
 
 ## 開発手順
 
+### 開発環境のセットアップ
+
+1. **環境変数の設定**
+
+```bash
+# .env.exampleをコピーして.envを作成
+cp .env.example .env
+```
+
+2. **Redisサーバーの起動**
+
+開発環境ではDockerを使用してRedisを起動するのが最も簡単です：
+
+```bash
+# Redisコンテナを起動
+docker run -d --name redis -p 6379:6379 redis:latest
+
+# 停止する場合
+docker stop redis
+docker rm redis
+```
+
 ### 開発環境（ローカル）
 
 ```bash
@@ -187,10 +209,9 @@ pnpm lint
 
 ### 環境変数
 
-以下の環境変数でRedis接続をカスタマイズできます：
+環境変数は `.env` ファイルで設定できます。`.env.example` を参考にしてください。
 
-- `REDIS_HOST`: Redisサーバーのホスト名（デフォルト: localhost）
-- `REDIS_PORT`: Redisサーバーのポート番号（デフォルト: 6379）
+- `VIDEO_QUEUE_REDIS_URL`: 動画処理キュー用Redisサーバーの接続URL（例: redis://localhost:6379/1）
 
 ### API エンドポイント
 
