@@ -13,11 +13,6 @@ export default defineConfig({
   server: { port: 3000, host: true /* ホスティング時必須 */ },
   integrations: [react()],
   vite: {
-    plugins: [tailwindcss()],
-    ssr: {
-      // サーバーサイド専用のパッケージを external として扱う
-      noExternal: [],
-      external: ['bullmq', 'ioredis']
-    }
+    plugins: [tailwindcss()]
   }
 })
