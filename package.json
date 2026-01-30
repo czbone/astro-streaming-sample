@@ -1,0 +1,22 @@
+{
+  "name": "nexstream-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel --filter @nexstream/web --filter @nexstream/worker dev",
+    "dev:web": "pnpm --filter @nexstream/web dev",
+    "dev:worker": "pnpm --filter @nexstream/worker dev",
+    "build": "pnpm --filter @nexstream/shared build && pnpm --filter @nexstream/web build && pnpm --filter @nexstream/worker build",
+    "build:shared": "pnpm --filter @nexstream/shared build",
+    "build:web": "pnpm --filter @nexstream/web build",
+    "build:worker": "pnpm --filter @nexstream/worker build",
+    "format": "prettier -w .",
+    "lint": "pnpm --filter @nexstream/web lint"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.1",
+    "prettier-plugin-astro": "^0.14.1",
+    "prettier-plugin-tailwindcss": "^0.7.2",
+    "typescript": "^5.9.3"
+  }
+}
