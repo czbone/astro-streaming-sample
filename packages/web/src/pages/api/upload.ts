@@ -18,8 +18,8 @@ export const POST: APIRoute = async ({ request }) => {
     const originalFileName = `${videoId}${extension}`
     const hlsDirName = videoId
 
-    // 保存先ディレクトリ（モノレポのルートからの相対パス）
-    const dataDir = path.join(process.cwd(), '..', '..', 'data')
+    // 保存先ディレクトリ（Docker環境では /data、ローカル開発では相対パス）
+    const dataDir = process.env.DATA_DIR || path.join(process.cwd(), '..', '..', 'data')
     const originalDir = path.join(dataDir, 'original')
     const hlsBaseDir = path.join(dataDir, 'hls')
     const hlsOutputDir = path.join(hlsBaseDir, hlsDirName)

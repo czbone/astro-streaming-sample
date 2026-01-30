@@ -63,6 +63,10 @@ cp .env.example .env
 `.env`ファイルを編集：
 
 ```env
+# データディレクトリ（Docker環境では /data を指定）
+DATA_DIR=/data
+
+# Redis接続（動画処理キュー用）
 VIDEO_QUEUE_REDIS_URL=redis://localhost:6379/1
 ```
 
@@ -129,8 +133,8 @@ pnpm start
     "videoId": "1738126800000",
     "originalFileName": "1738126800000.mp4",
     "hlsDirName": "1738126800000",
-    "originalPath": "/app/data/original/1738126800000.mp4",
-    "hlsOutputDir": "/app/data/hls/1738126800000"
+    "originalPath": "/data/original/1738126800000.mp4",
+    "hlsOutputDir": "/data/hls/1738126800000"
   }
 }
 ```
@@ -169,8 +173,9 @@ docker build -f packages/web/Dockerfile -t nexstream-web .
 ```bash
 docker run -d \
   -p 3000:3000 \
+  -e DATA_DIR=/data \
   -e VIDEO_QUEUE_REDIS_URL=redis://redis:6379/1 \
-  -v $(pwd)/data:/app/data \
+  -v $(pwd)/data:/data \
   nexstream-web
 ```
 
@@ -178,6 +183,7 @@ docker run -d \
 
 | 変数名 | 説明 | デフォルト |
 |--------|------|-----------|
+| `DATA_DIR` | データディレクトリのパス（Docker環境では `/data`） | `../../data`（相対パス） |
 | `VIDEO_QUEUE_REDIS_URL` | Redis接続URL | `redis://localhost:6379/1` |
 | `NODE_ENV` | 実行環境 | `development` |
 
@@ -189,12 +195,12 @@ docker run -d \
 
 ### 動画が表示されない
 
-1. 動画ファイルが`data/hls/`ディレクトリに存在するか確認
+1. 動画ファイルが`/data/hls/`（Docker環境）または`data/hls/`（ローカル環境）ディレクトリに存在するか確認
 2. Workerが正常に動作しているか確認
 3. ブラウザのコンソールでエラーを確認
 
 ### HLS再生がうまくいかない
 
 1. ブラウザがHLS.jsをサポートしているか確認
-2. `data/hls/[id]/index.m3u8`ファイルが存在するか確認
+2. `/data/hls/[id]/index.m3u8`（Docker環境）または`data/hls/[id]/index.m3u8`（ローカル環境）ファイルが存在するか確認
 3. Nginxなどのリバースプロキシが正しく設定されているか確認（本番環境）
