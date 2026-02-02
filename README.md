@@ -2,6 +2,8 @@
 
 MP4動画をアップロードしてHLS形式に自動変換し、ストリーミング配信するWebアプリケーションです。BullMQとRedisを使用した非同期ジョブキュー処理により、動画変換をバックグラウンドで実行します。
 
+![Streaming Screenshot](https://github.com/user-attachments/assets/eb3aea02-dcbb-4622-a4d7-018d7547fc0b)
+
 ## プロジェクト構成
 
 ```
@@ -31,9 +33,6 @@ astro-streaming-sample/
 │   ├── tsconfig.json
 │   └── .env.example
 ├── public/
-├── data/
-│   ├── original/           # アップロードされた元動画
-│   └── hls/                # HLS変換後の動画ファイル
 ├── package.json            # Webアプリ依存関係
 ├── tsconfig.json
 └── README.md
