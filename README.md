@@ -6,9 +6,9 @@ MP4動画をアップロードしてHLS形式に自動変換し、ストリー�
 
 ```
 astro-streaming-sample/
-├── src/
+├── src/                    # Webアプリ（Producer）
 │   ├── pages/              # Astro pages（UI & API）
-│   │   ├── api/            # APIエンドポイント
+│   │   ├── api/
 │   │   │   ├── upload.ts      # 動画アップロード（Producer）
 │   │   │   └── job-status.ts  # ジョブ状態確認
 │   │   ├── index.astro     # トップページ
@@ -21,16 +21,22 @@ astro-streaming-sample/
 │   ├── config.ts           # Redis接続設定
 │   ├── queue/
 │   │   └── video.ts        # BullMQキュー定義
-│   ├── types.ts            # 型定義
-│   └── consumer.ts         # Workerプロセス（Consumer）
+│   └── types.ts            # 型定義
+├── worker/                 # Workerプロジェクト（Consumer）
+│   ├── src/
+│   │   ├── index.ts        # Worker実装
+│   │   ├── config.ts       # Redis接続設定（コピー）
+│   │   └── types.ts        # 型定義（コピー）
+│   ├── package.json        # Worker専用依存関係
+│   ├── tsconfig.json
+│   └── .env.example
 ├── public/
 ├── data/
 │   ├── original/           # アップロードされた元動画
 │   └── hls/                # HLS変換後の動画ファイル
-├── package.json
+├── package.json            # Webアプリ依存関係
 ├── tsconfig.json
-├── astro.config.mjs
-└── .env.example
+└── README.md
 ```
 
 ## 技術スタック
@@ -44,14 +50,14 @@ astro-streaming-sample/
 
 ## アーキテクチャ
 
-### Producer/Consumer パターン
+### Producer/Consumer パターン（分離プロジェクト）
 
 ```
 1. ユーザーが動画をアップロード
    ↓
 2. Producer (Astro API) がファイルを保存し、Redisキューにジョブを追加
    ↓
-3. Consumer (src/consumer.ts) がジョブを取得
+3. Consumer (worker/src/index.ts) がジョブを取得
    ↓
 4. ConsumerがFFmpegを実行してHLS変換
    ↓
@@ -60,11 +66,17 @@ astro-streaming-sample/
 6. Webアプリで動画一覧に表示され、視聴可能に
 ```
 
+**プロジェクト分離のメリット:**
+- Webアプリ（Producer）とWorker（Consumer）を別々にデプロイ可能
+- Workerだけを複数インスタンス起動して処理能力を向上
+- 各プロジェクトに必要な依存関係のみをインストール
+- 独立した開発・テスト・デプロイ
+
 ## 必要要件
 
 - **Node.js**: v18.14.1以上
 - **pnpm**: v10.4.1以上
-- **FFmpeg**: Consumer実行環境にインストール必須
+- **FFmpeg**: Worker実行環境にインストール必須
 - **Redis**: ジョブキュー用（別途起動が必要）
 
 ## セットアップ
@@ -76,28 +88,47 @@ git clone [リポジトリURL]
 cd astro-streaming-sample
 ```
 
-### 2. 依存関係のインストール
+### 2. Webアプリのセットアップ
 
 ```bash
+# 依存関係のインストール
 pnpm install
-```
 
-### 3. 環境変数の設定
-
-`.env.example`を`.env`にコピーして編集：
-
-```bash
+# 環境変数の設定
 cp .env.example .env
 ```
 
 `.env`ファイルの内容：
 
 ```env
-# データディレクトリ（Docker環境では /data を指定）
+# データディレクトリ
 DATA_DIR=./data
 
 # Redis接続（動画処理キュー用）
 VIDEO_QUEUE_REDIS_URL=redis://localhost:6379/1
+```
+
+### 3. Workerのセットアップ
+
+```bash
+# Workerディレクトリへ移動
+cd worker
+
+# 依存関係のインストール
+pnpm install
+
+# 環境変数の設定
+cp .env.example .env
+```
+
+`worker/.env`ファイルの内容：
+
+```env
+# Redis接続（動画処理キュー用）
+VIDEO_QUEUE_REDIS_URL=redis://localhost:6379/1
+
+# データディレクトリ（相対パス）
+DATA_DIR=../data
 ```
 
 ### 4. Redisの起動
@@ -112,7 +143,7 @@ redis-server
 
 ### 5. FFmpegのインストール
 
-Consumer（動画変換ワーカー）を実行する環境にFFmpegが必要です：
+Worker実行環境にFFmpegが必要です：
 
 ```bash
 # macOS
@@ -129,80 +160,120 @@ sudo apt update && sudo apt install -y ffmpeg
 
 ### ローカル開発
 
-2つのターミナルを開いて、それぞれ以下を実行：
+3つのターミナルを開いて、それぞれ以下を実行：
 
 ```bash
-# ターミナル1: Webアプリケーション（Producer）
+# ターミナル1: Redis
+docker run -d --name redis -p 6379:6379 redis:7-alpine
+
+# ターミナル2: Webアプリケーション（Producer）
 pnpm dev
 
-# ターミナル2: Consumer（動画変換ワーカー）
-pnpm dev:consumer
+# ターミナル3: Worker（Consumer）
+cd worker
+pnpm dev
 ```
 
 ブラウザでアクセス：http://localhost:3000
 
 ## ビルド＆本番実行
 
+### Webアプリ
+
 ```bash
 # ビルド
 pnpm build
 
-# 本番実行（2つのプロセスを起動）
-pnpm start            # Webアプリケーション（ポート3000）
-pnpm start:consumer   # Consumer（別プロセス）
+# 本番実行
+pnpm start
+```
+
+### Worker
+
+```bash
+cd worker
+
+# 本番実行（ビルド不要）
+pnpm start
 ```
 
 ## スクリプト
 
-- `pnpm dev` - 開発サーバー起動（Webアプリ）
-- `pnpm dev:consumer` - Consumer起動（開発モード・watch有効）
+### Webアプリ（ルート）
+
+- `pnpm dev` - 開発サーバー起動
 - `pnpm build` - 本番用ビルド
-- `pnpm start` - 本番サーバー起動（Webアプリ）
-- `pnpm start:consumer` - Consumer起動（本番モード）
+- `pnpm start` - 本番サーバー起動
 - `pnpm format` - コードフォーマット
 - `pnpm lint` - ESLintでコード検証
 
-## 環境構築の分離
+### Worker（worker/）
 
-このプロジェクトはアプリケーションコードのみを提供します。以下は別リポジトリまたは別の方法で管理してください：
+- `pnpm dev` - Worker起動（開発モード・watch有効）
+- `pnpm start` - Worker起動（本番モード）
 
-- Docker/Docker Compose設定
-- Redis、データベース等のインフラ構成
-- リバースプロキシ（Nginx等）の設定
-- SSL証明書の管理
+## デプロイ
 
-## デプロイ例
+### 個別デプロイ（推奨）
 
-### Node.js環境へのデプロイ
+WebアプリとWorkerを別々のサーバーまたはコンテナにデプロイできます：
 
-1. Redis、FFmpegが利用可能な環境を準備
-2. 本番用の`.env`ファイルを設定
-3. ビルドと起動：
-
+**Webアプリ:**
 ```bash
 pnpm install --prod
 pnpm build
-pnpm start &           # バックグラウンドで起動
-pnpm start:consumer &  # バックグラウンドで起動
+pnpm start
 ```
 
-### プロセス管理
+**Worker:**
+```bash
+cd worker
+pnpm install --prod
+pnpm start
+```
 
-本番環境では PM2 などのプロセスマネージャーの使用を推奨：
+### 同一サーバーへのデプロイ
+
+プロセス管理にPM2を使用：
 
 ```bash
+# PM2をインストール
 npm install -g pm2
 
 # Webアプリ起動
 pm2 start pnpm --name "astro-web" -- start
 
-# Consumer起動
-pm2 start pnpm --name "astro-consumer" -- start:consumer
+# Worker起動
+pm2 start pnpm --name "astro-worker" --cwd worker -- start
 
 # 自動起動設定
 pm2 save
 pm2 startup
 ```
+
+### Workerのスケーリング
+
+複数のWorkerインスタンスを起動して処理能力を向上：
+
+```bash
+# Worker1
+pm2 start pnpm --name "astro-worker-1" --cwd worker -- start
+
+# Worker2
+pm2 start pnpm --name "astro-worker-2" --cwd worker -- start
+
+# Worker3
+pm2 start pnpm --name "astro-worker-3" --cwd worker -- start
+```
+
+## 環境構築の分離
+
+このプロジェクトはアプリケーションコードのみを提供します。以下は別リポジトリまたは別の方法で管理してください：
+
+- Docker/Docker Compose設定（インフラ構築用）
+- Redis、データベース等のインフラ構成
+- リバースプロキシ（Nginx等）の設定
+- SSL証明書の管理
 
 ## トラブルシューティング
 
@@ -222,24 +293,20 @@ pm2 startup
 
 ### 動画が変換されない
 
-1. Consumerが起動しているか確認
+1. Workerが起動しているか確認
 2. FFmpegがインストールされているか確認：
    ```bash
    ffmpeg -version
    ```
 
-3. Consumerのログを確認して、エラーメッセージを確認
+3. Workerのログを確認して、エラーメッセージを確認
 
-### pnpm installがエラーになる
+### データディレクトリのパス問題
 
-```bash
-# pnpmをアップデート
-npm install -g pnpm@latest
+- Webアプリ: `./data`（プロジェクトルートから）
+- Worker: `../data`（workerディレクトリから見て上の階層）
 
-# node_modulesを削除して再インストール
-rm -rf node_modules
-pnpm install
-```
+環境変数`DATA_DIR`で調整可能です。
 
 ## ライセンス
 

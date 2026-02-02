@@ -4,10 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "dev:consumer": "tsx watch src/consumer.ts",
     "build": "astro build",
     "start": "node ./dist/server/entry.mjs",
-    "start:consumer": "tsx src/consumer.ts",
     "format": "prettier -w .",
     "lint": "eslint ."
   },
