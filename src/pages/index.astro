@@ -3,7 +3,7 @@ import Layout from '../layouts/Layout.astro'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
-import { videoQueue } from '@nexstream/shared'
+import { videoQueue } from '../queue/video'
 
 const dataDir = path.join(process.cwd(), '..', '..', 'data')
 const hlsDir = path.join(dataDir, 'hls')
