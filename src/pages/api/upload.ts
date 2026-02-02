@@ -1,4 +1,4 @@
-import { videoQueue } from '@nexstream/shared'
+import { videoQueue } from '../../queue/video'
 import type { APIRoute } from 'astro'
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -19,7 +19,7 @@ export const POST: APIRoute = async ({ request }) => {
     const hlsDirName = videoId
 
     // 保存先ディレクトリ（Docker環境では /data、ローカル開発では相対パス）
-    const dataDir = process.env.DATA_DIR || path.join(process.cwd(), '..', '..', 'data')
+    const dataDir = process.env.DATA_DIR || path.join(process.cwd(), 'data')
     const originalDir = path.join(dataDir, 'original')
     const hlsBaseDir = path.join(dataDir, 'hls')
     const hlsOutputDir = path.join(hlsBaseDir, hlsDirName)

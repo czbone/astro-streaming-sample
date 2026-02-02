@@ -1,22 +1,43 @@
 {
-  "name": "nexstream-monorepo",
+  "name": "astro-streaming-sample",
   "version": "1.0.0",
-  "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "pnpm --parallel --filter @nexstream/web --filter @nexstream/worker dev",
-    "dev:web": "pnpm --filter @nexstream/web dev",
-    "dev:worker": "pnpm --filter @nexstream/worker dev",
-    "build": "pnpm --filter @nexstream/shared build && pnpm --filter @nexstream/web build && pnpm --filter @nexstream/worker build",
-    "build:shared": "pnpm --filter @nexstream/shared build",
-    "build:web": "pnpm --filter @nexstream/web build",
-    "build:worker": "pnpm --filter @nexstream/worker build",
+    "dev": "astro dev",
+    "dev:consumer": "tsx watch src/consumer.ts",
+    "build": "astro build",
+    "start": "node ./dist/server/entry.mjs",
+    "start:consumer": "tsx src/consumer.ts",
     "format": "prettier -w .",
-    "lint": "pnpm --filter @nexstream/web lint"
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@astrojs/node": "^9.5.2",
+    "@astrojs/react": "^4.4.2",
+    "astro": "^5.16.15",
+    "bullmq": "^5.36.3",
+    "hls.js": "^1.6.15",
+    "ioredis": "^5.5.2",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@tailwindcss/vite": "^4.1.18",
+    "@types/node": "^25.0.10",
+    "@types/react": "^19.2.10",
+    "@typescript-eslint/parser": "^8.54.0",
+    "astro-eslint-parser": "^1.2.2",
+    "eslint": "^9.39.2",
+    "eslint-plugin-astro": "^1.5.0",
+    "flowbite": "^4.0.1",
+    "globals": "^17.2.0",
     "prettier": "^3.8.1",
     "prettier-plugin-astro": "^0.14.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
-    "typescript": "^5.9.3"
+    "tailwindcss": "^4.1.18",
+    "tsx": "^4.19.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.54.0"
   }
 }

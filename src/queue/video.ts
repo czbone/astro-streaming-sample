@@ -1,6 +1,6 @@
 import { Queue } from 'bullmq'
-import { redis } from './redis'
-import type { VideoJobData } from './types'
+import { redis } from '../config'
+import type { VideoJobData } from '../types'
 
 /**
  * BullMQキュー（動画処理用）

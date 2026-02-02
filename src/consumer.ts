@@ -1,4 +1,5 @@
-import { redis, type VideoJobData } from '@nexstream/shared'
+import { redis } from './config'
+import type { VideoJobData } from './types'
 import { Job, Worker } from 'bullmq'
 import { exec } from 'node:child_process'
 import { promisify } from 'node:util'

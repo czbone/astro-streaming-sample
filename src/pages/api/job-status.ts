@@ -1,4 +1,4 @@
-import { videoQueue } from '@nexstream/shared'
+import { videoQueue } from '../../queue/video'
 import type { APIRoute } from 'astro'
 
 export const GET: APIRoute = async ({ url }) => {

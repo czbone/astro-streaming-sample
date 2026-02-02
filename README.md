@@ -1,58 +1,71 @@
-# NexStream モノレポ
+# Astro Streaming Sample
 
-NexStreamは、MP4動画をアップロードしてHLS形式に自動変換し、ストリーミング配信するWebアプリケーションです。pnpm workspaceを使用したモノレポ構成により、Webアプリケーションとワーカープロセスを分離管理しています。
+MP4動画をアップロードしてHLS形式に自動変換し、ストリーミング配信するWebアプリケーションです。BullMQとRedisを使用した非同期ジョブキュー処理により、動画変換をバックグラウンドで実行します。
 
 ## プロジェクト構成
 
 ```
-nexstream-monorepo/
-├── packages/
-│   ├── shared/              # 共有ライブラリ（Redis、BullMQ、型定義）
-│   ├── web/                 # Astro Webアプリケーション
-│   └── worker/              # 動画変換ワーカープロセス
-├── data/                    # 動画データ（.gitignoreに含む）
-│   ├── original/            # アップロードされた元動画
-│   └── hls/                 # HLS変換後の動画ファイル
-├── pnpm-workspace.yaml      # pnpm workspace設定
-├── docker-compose.yml       # Docker Compose設定
-└── package.json             # ルートpackage.json
+astro-streaming-sample/
+├── src/
+│   ├── pages/              # Astro pages（UI & API）
+│   │   ├── api/            # APIエンドポイント
+│   │   │   ├── upload.ts      # 動画アップロード（Producer）
+│   │   │   └── job-status.ts  # ジョブ状態確認
+│   │   ├── index.astro     # トップページ
+│   │   ├── upload.astro    # アップロードページ
+│   │   └── watch/          # 動画視聴ページ
+│   ├── components/         # React components
+│   │   └── HlsPlayer.tsx   # HLS動画プレイヤー
+│   ├── layouts/            # Astro layouts
+│   ├── styles/             # CSS
+│   ├── config.ts           # Redis接続設定
+│   ├── queue/
+│   │   └── video.ts        # BullMQキュー定義
+│   ├── types.ts            # 型定義
+│   └── consumer.ts         # Workerプロセス（Consumer）
+├── public/
+├── data/
+│   ├── original/           # アップロードされた元動画
+│   └── hls/                # HLS変換後の動画ファイル
+├── package.json
+├── tsconfig.json
+├── astro.config.mjs
+└── .env.example
 ```
 
 ## 技術スタック
 
-- **モノレポ管理**: pnpm workspace
 - **Webフレームワーク**: Astro + React
 - **スタイリング**: TailwindCSS v4 + Flowbite
 - **動画配信**: HLS.js
 - **ジョブキュー**: BullMQ + Redis
 - **動画変換**: FFmpeg
 - **型安全性**: TypeScript
-- **コンテナ**: Docker + Docker Compose
 
-## パッケージ概要
+## アーキテクチャ
 
-### @nexstream/shared
-Redis接続、BullMQキュー、型定義を提供する共有ライブラリ。WebアプリとWorkerの両方から使用されます。
+### Producer/Consumer パターン
 
-[詳細はこちら](./packages/shared/README.md)
-
-### @nexstream/web
-ユーザーインターフェース、動画アップロード、動画一覧、動画視聴機能を提供するAstro Webアプリケーション。
-
-[詳細はこちら](./packages/web/README.md)
-
-### @nexstream/worker
-BullMQワーカープロセス。Redisキューからジョブを取得し、FFmpegで動画をHLS形式に変換します。
-
-[詳細はこちら](./packages/worker/README.md)
+```
+1. ユーザーが動画をアップロード
+   ↓
+2. Producer (Astro API) がファイルを保存し、Redisキューにジョブを追加
+   ↓
+3. Consumer (src/consumer.ts) がジョブを取得
+   ↓
+4. ConsumerがFFmpegを実行してHLS変換
+   ↓
+5. 変換完了後、ジョブを完了状態に更新
+   ↓
+6. Webアプリで動画一覧に表示され、視聴可能に
+```
 
 ## 必要要件
 
 - **Node.js**: v18.14.1以上
 - **pnpm**: v10.4.1以上
-- **Docker & Docker Compose**: 本番環境またはローカル開発で使用
-- **FFmpeg**: ワーカーを実行する環境（Dockerコンテナまたはローカル）
-- **Redis**: ジョブキュー用（Dockerコンテナまたはローカル）
+- **FFmpeg**: Consumer実行環境にインストール必須
+- **Redis**: ジョブキュー用（別途起動が必要）
 
 ## セットアップ
 
@@ -60,7 +73,7 @@ BullMQワーカープロセス。Redisキューからジョブを取得し、FFm
 
 ```bash
 git clone [リポジトリURL]
-cd nexstream-monorepo
+cd astro-streaming-sample
 ```
 
 ### 2. 依存関係のインストール
@@ -69,172 +82,153 @@ cd nexstream-monorepo
 pnpm install
 ```
 
-### 3. 共有ライブラリのビルド
+### 3. 環境変数の設定
+
+`.env.example`を`.env`にコピーして編集：
 
 ```bash
-pnpm build:shared
+cp .env.example .env
 ```
 
-### 4. 環境変数の設定
-
-各パッケージに`.env.example`があるので、`.env`ファイルを作成：
-
-```bash
-# 共有ライブラリ
-cp packages/shared/.env.example packages/shared/.env
-
-# Webアプリ
-cp packages/web/.env.example packages/web/.env
-
-# ワーカー
-cp packages/worker/.env.example packages/worker/.env
-```
-
-`.env`ファイルを編集してRedis接続URLを設定：
+`.env`ファイルの内容：
 
 ```env
+# データディレクトリ（Docker環境では /data を指定）
+DATA_DIR=./data
+
+# Redis接続（動画処理キュー用）
 VIDEO_QUEUE_REDIS_URL=redis://localhost:6379/1
+```
+
+### 4. Redisの起動
+
+```bash
+# Dockerを使用する場合
+docker run -d --name redis -p 6379:6379 redis:7-alpine
+
+# または、ローカルにインストールされたRedisを起動
+redis-server
+```
+
+### 5. FFmpegのインストール
+
+Consumer（動画変換ワーカー）を実行する環境にFFmpegが必要です：
+
+```bash
+# macOS
+brew install ffmpeg
+
+# Ubuntu/Debian
+sudo apt update && sudo apt install -y ffmpeg
+
+# Windows
+# https://ffmpeg.org/download.html からダウンロード
 ```
 
 ## 開発方法
 
-### ローカル開発（Redisのみコンテナで起動）
+### ローカル開発
 
-#### 1. Redisを起動
-
-```bash
-docker run -d --name redis -p 6379:6379 redis:7-alpine
-```
-
-#### 2. Webアプリとワーカーを起動
+2つのターミナルを開いて、それぞれ以下を実行：
 
 ```bash
-# 両方を同時起動
+# ターミナル1: Webアプリケーション（Producer）
 pnpm dev
 
-# または個別に起動
-pnpm dev:web      # ポート3000
-pnpm dev:worker
+# ターミナル2: Consumer（動画変換ワーカー）
+pnpm dev:consumer
 ```
 
-#### 3. ブラウザでアクセス
+ブラウザでアクセス：http://localhost:3000
 
-http://localhost:3000
-
-### Docker Composeで全体を起動
+## ビルド＆本番実行
 
 ```bash
-# ビルドと起動
-docker-compose up --build
-
-# バックグラウンドで起動
-docker-compose up -d
-
-# ログを確認
-docker-compose logs -f
-
-# 停止
-docker-compose down
-```
-
-## ビルド
-
-### 全パッケージのビルド
-
-```bash
+# ビルド
 pnpm build
-```
 
-### 個別パッケージのビルド
-
-```bash
-pnpm build:shared    # 共有ライブラリ
-pnpm build:web       # Webアプリ
-pnpm build:worker    # ワーカー
+# 本番実行（2つのプロセスを起動）
+pnpm start            # Webアプリケーション（ポート3000）
+pnpm start:consumer   # Consumer（別プロセス）
 ```
 
 ## スクリプト
 
-### ルートレベル
+- `pnpm dev` - 開発サーバー起動（Webアプリ）
+- `pnpm dev:consumer` - Consumer起動（開発モード・watch有効）
+- `pnpm build` - 本番用ビルド
+- `pnpm start` - 本番サーバー起動（Webアプリ）
+- `pnpm start:consumer` - Consumer起動（本番モード）
+- `pnpm format` - コードフォーマット
+- `pnpm lint` - ESLintでコード検証
 
-- `pnpm dev`: WebとWorkerを同時起動（開発モード）
-- `pnpm dev:web`: Webアプリのみ起動
-- `pnpm dev:worker`: Workerのみ起動
-- `pnpm build`: 全パッケージをビルド
-- `pnpm build:shared`: 共有ライブラリをビルド
-- `pnpm build:web`: Webアプリをビルド
-- `pnpm build:worker`: Workerをビルド
-- `pnpm format`: コードフォーマット
-- `pnpm lint`: ESLintでコード検証
+## 環境構築の分離
 
-### パッケージ個別
+このプロジェクトはアプリケーションコードのみを提供します。以下は別リポジトリまたは別の方法で管理してください：
 
-各パッケージ内で実行:
+- Docker/Docker Compose設定
+- Redis、データベース等のインフラ構成
+- リバースプロキシ（Nginx等）の設定
+- SSL証明書の管理
 
-```bash
-cd packages/web
-pnpm dev        # 開発サーバー起動
-pnpm build      # ビルド
-pnpm start      # 本番サーバー起動
-```
+## デプロイ例
 
-## アーキテクチャ
+### Node.js環境へのデプロイ
 
-### データフロー
-
-```
-1. ユーザーが動画をアップロード
-   ↓
-2. Webアプリがファイルを保存し、Redisキューにジョブを追加
-   ↓
-3. Workerプロセスがジョブを取得
-   ↓
-4. WorkerがFFmpegを実行してHLS変換
-   ↓
-5. 変換完了後、ジョブを完了状態に更新
-   ↓
-6. Webアプリで動画一覧に表示され、視聴可能に
-```
-
-### パッケージ間の依存関係
-
-```
-@nexstream/web  →  @nexstream/shared  ←  @nexstream/worker
-```
-
-- `@nexstream/web`と`@nexstream/worker`は、`@nexstream/shared`に依存
-- `@nexstream/shared`は独立しており、他のパッケージに依存しない
-
-## デプロイ
-
-### Docker Composeでのデプロイ
-
-1. 本番環境用の`.env`ファイルを設定
-2. Docker Composeでビルド＆起動:
+1. Redis、FFmpegが利用可能な環境を準備
+2. 本番用の`.env`ファイルを設定
+3. ビルドと起動：
 
 ```bash
-docker-compose up -d --build
+pnpm install --prod
+pnpm build
+pnpm start &           # バックグラウンドで起動
+pnpm start:consumer &  # バックグラウンドで起動
 ```
 
-### 個別コンテナでのデプロイ
+### プロセス管理
 
-Webアプリとワーカーを別々のコンテナまたはサーバーにデプロイする場合:
-
-#### Webアプリ
+本番環境では PM2 などのプロセスマネージャーの使用を推奨：
 
 ```bash
-docker build -f packages/web/Dockerfile -t nexstream-web .
-docker run -d -p 3000:3000 --env-file packages/web/.env nexstream-web
-```
+npm install -g pm2
 
-#### ワーカー
+# Webアプリ起動
+pm2 start pnpm --name "astro-web" -- start
 
-```bash
-docker build -f packages/worker/Dockerfile -t nexstream-worker .
-docker run -d --env-file packages/worker/.env nexstream-worker
+# Consumer起動
+pm2 start pnpm --name "astro-consumer" -- start:consumer
+
+# 自動起動設定
+pm2 save
+pm2 startup
 ```
 
 ## トラブルシューティング
+
+### Redisに接続できない
+
+1. Redisが起動しているか確認：
+   ```bash
+   docker ps | grep redis
+   ```
+
+2. `.env`ファイルの`VIDEO_QUEUE_REDIS_URL`を確認
+
+3. Redisの再起動：
+   ```bash
+   docker restart redis
+   ```
+
+### 動画が変換されない
+
+1. Consumerが起動しているか確認
+2. FFmpegがインストールされているか確認：
+   ```bash
+   ffmpeg -version
+   ```
+
+3. Consumerのログを確認して、エラーメッセージを確認
 
 ### pnpm installがエラーになる
 
@@ -243,47 +237,9 @@ docker run -d --env-file packages/worker/.env nexstream-worker
 npm install -g pnpm@latest
 
 # node_modulesを削除して再インストール
-rm -rf node_modules packages/*/node_modules
+rm -rf node_modules
 pnpm install
 ```
-
-### 共有ライブラリが見つからない
-
-```bash
-# 共有ライブラリをビルド
-pnpm build:shared
-```
-
-### Redisに接続できない
-
-1. Redisが起動しているか確認:
-   ```bash
-   docker ps | grep redis
-   ```
-
-2. `.env`ファイルの`VIDEO_QUEUE_REDIS_URL`を確認
-
-3. Redisの再起動:
-   ```bash
-   docker restart redis
-   ```
-
-### 動画が変換されない
-
-1. ワーカーが起動しているか確認
-2. FFmpegがインストールされているか確認（ローカル開発の場合）
-3. ワーカーのログを確認:
-   ```bash
-   # ローカル
-   pnpm dev:worker
-   
-   # Docker
-   docker-compose logs -f worker
-   ```
-
-## 貢献
-
-プルリクエストを歓迎します。大きな変更の場合は、まずissueを開いて変更内容を議論してください。
 
 ## ライセンス
 
