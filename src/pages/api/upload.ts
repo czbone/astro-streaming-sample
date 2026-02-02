@@ -45,7 +45,7 @@ export const POST: APIRoute = async ({ request }) => {
           hlsOutputDir
         },
         {
-          jobId: videoId // ジョブIDを指定して後で状態確認できるように
+          jobId: `video-${videoId}` // ジョブIDに接頭辞を追加（BullMQは数字のみのIDを許可しないため）
         }
       )
 
