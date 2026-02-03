@@ -3,6 +3,8 @@ import type { APIRoute } from 'astro'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 
+const DATA_DIR = '/data' // 動画の保存先ディレクトリ
+
 export const POST: APIRoute = async ({ request }) => {
   try {
     const formData = await request.formData()
@@ -18,8 +20,8 @@ export const POST: APIRoute = async ({ request }) => {
     const originalFileName = `${videoId}${extension}`
     const hlsDirName = videoId
 
-    // 保存先ディレクトリ（Docker環境では /data、ローカル開発では相対パス）
-    const dataDir = process.env.DATA_DIR || path.join(process.cwd(), 'data')
+    // 保存先ディレクトリ
+    const dataDir = DATA_DIR
     const originalDir = path.join(dataDir, 'original')
     const hlsBaseDir = path.join(dataDir, 'hls')
     const hlsOutputDir = path.join(hlsBaseDir, hlsDirName)
