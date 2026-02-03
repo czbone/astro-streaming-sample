@@ -1,7 +1,5 @@
-import dotenv from 'dotenv'
+import 'dotenv/config'
 import Redis from 'ioredis'
-
-dotenv.config()
 
 /**
  * Redis接続設定（動画処理用）
