@@ -28,7 +28,8 @@ const worker = new Worker<VideoJobData>(
       const { stdout, stderr } = await execPromise(ffmpegCommand)
 
       if (stdout) console.log(`[Worker] FFmpeg stdout:`, stdout)
-      if (stderr) console.log(`[Worker] FFmpeg stderr:`, stderr)
+      // FFmpegは通常の処理情報（進捗、入出力情報など）をstderrに出力します
+      if (stderr) console.log(`[Worker] FFmpeg処理情報:`, stderr)
 
       await job.updateProgress(100)
 
