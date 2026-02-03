@@ -1,4 +1,4 @@
-import { Queue } from 'bullmq'
+import { Queue, QueueEvents } from 'bullmq'
 import { redis } from '../config'
 import type { VideoJobData } from '../types'
 
@@ -21,6 +21,11 @@ export const videoQueue = new Queue<VideoJobData>('video-processing', {
   }
 })
 
+// QueueEventsを使用して、異なるプロセス間のイベントを監視
+const queueEvents = new QueueEvents('video-processing', {
+  connection: redis
+})
+
 // キューのイベントハンドリング
 videoQueue.on('error', (err) => {
   console.error('[Queue] Error:', err)
@@ -30,16 +35,21 @@ videoQueue.on('waiting', (job) => {
   console.log(`[Queue] Job ${job.id} is waiting`)
 })
 
-videoQueue.on('active', (job) => {
-  console.log(`[Queue] Job ${job.id} is now active (processing started)`)
+// QueueEventsを使用してワーカー側のイベントを監視
+queueEvents.on('active', ({ jobId }) => {
+  console.log(`[Queue] Job ${jobId} is now active (processing started)`)
 })
 
-videoQueue.on('completed', (job) => {
-  console.log(`[Queue] Job ${job.id} has completed successfully`)
+queueEvents.on('completed', ({ jobId }) => {
+  console.log(`[Queue] Job ${jobId} has completed successfully`)
 })
 
-videoQueue.on('failed', (job, err) => {
-  console.error(`[Queue] Job ${job?.id} has failed:`, err.message)
+queueEvents.on('failed', ({ jobId, failedReason }) => {
+  console.error(`[Queue] Job ${jobId} has failed:`, failedReason)
+})
+
+queueEvents.on('progress', ({ jobId, data }) => {
+  console.log(`[Queue] Job ${jobId} progress:`, data)
 })
 
 console.log('[Queue] Video processing queue initialized')
