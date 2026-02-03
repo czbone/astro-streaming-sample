@@ -1,8 +1,24 @@
-# Astro Streaming Sample
+# Astro動画配信サンプル
 
 MP4動画をアップロードしてHLS形式に自動変換し、ストリーミング配信するWebアプリケーションです。BullMQとRedisを使用した非同期ジョブキュー処理により、動画変換をバックグラウンドで実行します。
 
 ![Streaming Screenshot](https://github.com/user-attachments/assets/eb3aea02-dcbb-4622-a4d7-018d7547fc0b)
+
+## 環境構築について
+
+このプロジェクトは、以下の環境構築リポジトリ上で実行されることを想定して開発されています：
+
+**🔧 [docker-nodejs-streaming-staging-env](https://github.com/czbone/docker-nodejs-streaming-staging-env)**
+
+上記リポジトリでは、Vagrant + Ansible + Docker を使用して、本アプリケーションの実行に必要な以下の環境を自動構築します：
+
+- Node.js (v24.0.0) コンテナ
+- Nginx (1.28.1) コンテナ（リバースプロキシ・HLS配信）
+- FFmpeg (8.0.1) コンテナ（動画変換）
+- Redis (7.4.2) コンテナ（ジョブキュー）
+- Certbot (オプション・SSL証明書取得）
+
+詳細な環境構築手順は、上記リポジトリのREADMEをご参照ください。
 
 ## プロジェクト構成
 
@@ -100,9 +116,6 @@ cp .env.example .env
 `.env`ファイルの内容：
 
 ```env
-# データディレクトリ
-DATA_DIR=./data
-
 # Redis接続（動画処理キュー用）
 VIDEO_QUEUE_REDIS_URL=redis://localhost:6379/1
 ```
@@ -125,55 +138,7 @@ cp .env.example .env
 ```env
 # Redis接続（動画処理キュー用）
 VIDEO_QUEUE_REDIS_URL=redis://localhost:6379/1
-
-# データディレクトリ（相対パス）
-DATA_DIR=../data
 ```
-
-### 4. Redisの起動
-
-```bash
-# Dockerを使用する場合
-docker run -d --name redis -p 6379:6379 redis:7-alpine
-
-# または、ローカルにインストールされたRedisを起動
-redis-server
-```
-
-### 5. FFmpegのインストール
-
-Worker実行環境にFFmpegが必要です：
-
-```bash
-# macOS
-brew install ffmpeg
-
-# Ubuntu/Debian
-sudo apt update && sudo apt install -y ffmpeg
-
-# Windows
-# https://ffmpeg.org/download.html からダウンロード
-```
-
-## 開発方法
-
-### ローカル開発
-
-3つのターミナルを開いて、それぞれ以下を実行：
-
-```bash
-# ターミナル1: Redis
-docker run -d --name redis -p 6379:6379 redis:7-alpine
-
-# ターミナル2: Webアプリケーション（Producer）
-pnpm dev
-
-# ターミナル3: Worker（Consumer）
-cd worker
-pnpm dev
-```
-
-ブラウザでアクセス：http://localhost:3000
 
 ## ビルド＆本番実行
 
@@ -211,101 +176,31 @@ pnpm start
 - `pnpm dev` - Worker起動（開発モード・watch有効）
 - `pnpm start` - Worker起動（本番モード）
 
-## デプロイ
-
-### 個別デプロイ（推奨）
-
-WebアプリとWorkerを別々のサーバーまたはコンテナにデプロイできます：
-
-**Webアプリ:**
-```bash
-pnpm install --prod
-pnpm build
-pnpm start
-```
-
-**Worker:**
-```bash
-cd worker
-pnpm install --prod
-pnpm start
-```
-
-### 同一サーバーへのデプロイ
-
-プロセス管理にPM2を使用：
-
-```bash
-# PM2をインストール
-npm install -g pm2
-
-# Webアプリ起動
-pm2 start pnpm --name "astro-web" -- start
-
-# Worker起動
-pm2 start pnpm --name "astro-worker" --cwd worker -- start
-
-# 自動起動設定
-pm2 save
-pm2 startup
-```
-
-### Workerのスケーリング
-
-複数のWorkerインスタンスを起動して処理能力を向上：
-
-```bash
-# Worker1
-pm2 start pnpm --name "astro-worker-1" --cwd worker -- start
-
-# Worker2
-pm2 start pnpm --name "astro-worker-2" --cwd worker -- start
-
-# Worker3
-pm2 start pnpm --name "astro-worker-3" --cwd worker -- start
-```
-
 ## 環境構築の分離
 
-このプロジェクトはアプリケーションコードのみを提供します。以下は別リポジトリまたは別の方法で管理してください：
+このプロジェクトはアプリケーションコードのみを提供します。インフラ環境の構築には、以下の専用リポジトリを使用してください：
 
+### 推奨環境構築リポジトリ
+
+**[docker-nodejs-streaming-staging-env](https://github.com/czbone/docker-nodejs-streaming-staging-env)**
+
+このリポジトリでは、Vagrant + Ansible + Docker を使用して、本アプリケーションの実行に必要な完全な環境を自動構築します。
+
+**提供される機能：**
+- ✅ Docker環境の自動セットアップ
+- ✅ Redis、Nginx、FFmpeg、Certbot等の各種コンテナの構築
+- ✅ 本アプリケーションの自動デプロイ
+- ✅ HLS配信用のNginx設定
+- ✅ SSL証明書の自動取得（Let's Encrypt）
+
+**手動で環境を構築する場合：**
+
+以下のコンポーネントを別途用意する必要があります：
 - Docker/Docker Compose設定（インフラ構築用）
-- Redis、データベース等のインフラ構成
-- リバースプロキシ（Nginx等）の設定
+- Redis（ジョブキュー用）
+- Nginx（リバースプロキシ・HLS配信用）
+- FFmpeg（動画変換用）
 - SSL証明書の管理
-
-## トラブルシューティング
-
-### Redisに接続できない
-
-1. Redisが起動しているか確認：
-   ```bash
-   docker ps | grep redis
-   ```
-
-2. `.env`ファイルの`VIDEO_QUEUE_REDIS_URL`を確認
-
-3. Redisの再起動：
-   ```bash
-   docker restart redis
-   ```
-
-### 動画が変換されない
-
-1. Workerが起動しているか確認
-2. FFmpegがインストールされているか確認：
-   ```bash
-   ffmpeg -version
-   ```
-
-3. Workerのログを確認して、エラーメッセージを確認
-
-### データディレクトリのパス問題
-
-- Webアプリ: `./data`（プロジェクトルートから）
-- Worker: `../data`（workerディレクトリから見て上の階層）
-
-環境変数`DATA_DIR`で調整可能です。
 
 ## ライセンス
 

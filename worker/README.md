@@ -48,9 +48,6 @@ cp .env.example .env
 ```env
 # Redis接続（動画処理キュー用）
 VIDEO_QUEUE_REDIS_URL=redis://localhost:6379/1
-
-# データディレクトリ（親ディレクトリのdataを参照）
-DATA_DIR=../data
 ```
 
 ### 3. FFmpegのインストール
