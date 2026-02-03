@@ -26,8 +26,8 @@ videoQueue.on('error', (err) => {
   console.error('[Queue] Error:', err)
 })
 
-videoQueue.on('waiting', (jobId) => {
-  console.log(`[Queue] Job ${jobId} is waiting`)
+videoQueue.on('waiting', (job) => {
+  console.log(`[Queue] Job ${job.id} is waiting`)
 })
 
 console.log('[Queue] Video processing queue initialized')
