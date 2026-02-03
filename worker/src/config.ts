@@ -4,21 +4,14 @@ import Redis from 'ioredis'
 /**
  * Redis接続設定（動画処理用）
  * 
- * VIDEO_QUEUE_REDIS_URLがある場合はそれを使用、なければhost/port個別指定
+ * VIDEO_QUEUE_REDIS_URLを使用して接続
  */
-const redisUrl = process.env.VIDEO_QUEUE_REDIS_URL
+const redisUrl = process.env.VIDEO_QUEUE_REDIS_URL || 'redis://localhost:6379'
 
-export const redis = redisUrl
-  ? new Redis(redisUrl, {
-      maxRetriesPerRequest: null,
-      enableReadyCheck: false
-    })
-  : new Redis({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-      maxRetriesPerRequest: null,
-      enableReadyCheck: false
-    })
+export const redis = new Redis(redisUrl, {
+  maxRetriesPerRequest: null,
+  enableReadyCheck: false
+})
 
 // 接続エラーハンドリング
 redis.on('error', (err) => {
