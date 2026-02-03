@@ -30,4 +30,16 @@ videoQueue.on('waiting', (job) => {
   console.log(`[Queue] Job ${job.id} is waiting`)
 })
 
+videoQueue.on('active', (job) => {
+  console.log(`[Queue] Job ${job.id} is now active (processing started)`)
+})
+
+videoQueue.on('completed', (job) => {
+  console.log(`[Queue] Job ${job.id} has completed successfully`)
+})
+
+videoQueue.on('failed', (job, err) => {
+  console.error(`[Queue] Job ${job?.id} has failed:`, err.message)
+})
+
 console.log('[Queue] Video processing queue initialized')
